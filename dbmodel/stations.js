@@ -22,6 +22,9 @@ const schema = mongoose.Schema({
     ip_address : {
         type : String,
     },
+    default_language : {
+        type : String,
+    },
     mac_address : {
         type : String,
     },
@@ -121,17 +124,18 @@ async function get_station_mac(remote_ip,par)
     }
     
     const arp = require('@network-utils/arp-lookup');
+    
     let mac_address = await arp.toMAC(remote_ip);
-    let query = { "mac_address":mac_address };
+    let query = { "mac_address" : mac_address };
     
     let doc = await station.findOne(query);
-    
     if(doc==undefined)
     {
         //not exist
         let station_doc = new station({
             "mac_address" : mac_address,
             "last_access" : new Date(),
+            "default_language" : "ENG",
         })
     
         station_doc.save().then(doc=>{
@@ -143,14 +147,14 @@ async function get_station_mac(remote_ip,par)
             general_function.ProcessErrorWithSilence(error,par_);
             
         });
-
+        return station_doc;
     }
     else
     {
-        //
+        return doc;
     }
 
-    return mac_address;    
+    //return mac_address;    
 }
 
 function get_arp_table (par)

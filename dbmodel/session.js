@@ -23,6 +23,8 @@ const schema = mongoose.Schema({
         default: Date.now ,
     },
     ip_address : { type : String, },
+    macaddress : { type : String, },
+    
     power_tags : { type : [], },
     user_info : { type : mongoose.Schema.Types.Mixed, },
     islogin : {
@@ -69,9 +71,7 @@ const create_session = function (par)
         par_.ResContent.content.user ={};
         par_.SessionDoc = doc;
         
-        par.callback(par_);
         update_mac_to_session({_id:doc._id},client_ipaddress,par_);
-        
 
     }).catch(error=>{
         //return error
@@ -143,19 +143,23 @@ const vaildate_session = function (par)
 async function update_mac_to_session(query,remote_ip,par)
 {
     var par_ = general_function.DebugStep(par,"update_mac_to_session");
-    var remote_ip = "192.168.0.1";
+    var remote_ip = "192.168.0.1";//ip address replace from tempotory
     
     const stations = require('./stations');
-    let mac = await stations.GetStationMac(remote_ip,par);
+    let mac_doc = await stations.GetStationMac(remote_ip,par);
+   
     let update_doc = {
         $set : {
-            "macaddress" : mac,
+            "macaddress" : mac_doc.mac_address,
+            "station_info" : mac_doc,
         }
     }
-    model.findOneAndUpdate(query,update_doc).catch(error=>{
+    model.findOneAndUpdate(query,update_doc).then(doc=>{
+        par.callback(par_);
+    }).catch(error=>{
         general_function.ProcessErrorWithSilence(error,par);
     });
-    general_function.ApiRouteEnd(par_);
+    //general_function.ApiRouteEnd(par_);
 }
 
 const detach_all_from_session = function (par)

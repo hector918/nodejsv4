@@ -72,6 +72,36 @@ const add_user_ = function (req,res,par)
 
 }
 
+
+const update_user_field = function (query,par)
+{
+    //
+    var par_ =general_function.DebugStep(par,"update_user_field");
+    
+    let update_doc = {};
+    try{
+        update_doc[query.field]=query.value;
+        user.updateOne({_id:query._id},{$set:update_doc}).then(doc=>{
+            console.log(doc);
+            if(doc.nModified==1)
+            {
+                par_.ResContent.content.result="success";
+            }
+            else
+            {
+                par_.ResContent.content.result="fail";
+            }
+            par.callback(par_);
+        });
+        
+    }
+    catch(err)
+    {
+        console.log(err)
+    }
+    
+}
+
 const vaildate_user_by_barcode = function (query, par)
 {
     var par_ =general_function.DebugStep(par,"vaildate_user_by_barcode");
@@ -87,9 +117,8 @@ const vaildate_user_by_barcode = function (query, par)
                 "lastname" : "zhong",
                 "barcode" : "0",
                 "power_tags" : [ 
-                    "123", 
-                    "444", 
-                    312
+                    "created_by_system", 
+                    "first_user", 
                 ],
             }
             add_user_(user_doc);
@@ -103,7 +132,7 @@ const vaildate_user_by_barcode = function (query, par)
         par_.ResContent.content.result="vaild user error";
         par_.errors.push({"message":"vaild user error" + JSON.string(error)});
         par_.result = false;
-        general_function.ResWrite(req,res,par_);
+        general_function.ResWrite(par_);
         
     })
     
@@ -117,7 +146,7 @@ const vaildate_user_by_barcode = function (query, par)
             par_.ResContent['status_code']=500;
             par_.errors.push({"message":"vaild/add user error"+JSON.string(error)});
             par_.result = false;
-            general_function.ResWrite(req,res,par_);
+            general_function.ResWrite(par_);
         });
 
     }
@@ -205,5 +234,5 @@ module.exports.AttachSessionToUser = add_session_to_user;
 module.exports.ResponseUserInfo = response_user_info;
 module.exports.ListUser = list_user;
 module.exports.vaildateUserByBarcode = vaildate_user_by_barcode;
-
+module.exports.UpdateUserField = update_user_field;
 //module.exports.LoginByBarcode = user_login_by_barcode;

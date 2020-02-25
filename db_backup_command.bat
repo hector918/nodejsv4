@@ -1,0 +1,1 @@
+"C:\Program Files\MongoDB\Server\4.2\bin\mongodump.exe" --db=mevnStack --archive=dbbackup --gzip

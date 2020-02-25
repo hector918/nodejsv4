@@ -141,16 +141,24 @@ function handle_GET_with_sessionID( par)
 			switch(url_parts.pathname)
 			{
 				case "/api/users/getalluser":
-					let query = {};
+					
 					par_.callback = general_function.ResWrite;
-					users.ListUser(query,par_);
+					users.ListUser({},par_);
+				break;
+				case "/api/users/updateuserfield":
+					const query = {
+						_id : par_.postBody._id,
+						field : par_.postBody.field,
+						value : par_.postBody.text,
+					};
+					par_.callback = general_function.ResWrite;
+					users.UpdateUserField(query,par_);
 				break;
 				default:
 					//此处如不返回，将会返回到http response输出
-					default_action();
+					default_action_w();
 				break;
-			}	
-			
+			}
 		break;
 		case "/api/session/get_session":
 			//回复session user station

@@ -1,0 +1,1 @@
+"C:\Program Files\MongoDB\Server\4.2\bin\mongorestore.exe"  --archive=dbbackup --gzip --nsInclude "mevnStack.*" --nsFrom="mevnStack.*" --nsTo="mevnStack.*"
