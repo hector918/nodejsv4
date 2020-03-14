@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>HZ</title>
+<script>
+    var par_var={
+        "vendor_list" : [],
+        "style_list" : [],
+        "full_data" : null,
+        "start_date" : null,
+        "end_date" : null,
+    
+    }
+    
+</script>
+<script>
+    
+    function init_data()
+    {
+        //
+        var start = null;
+        var end = null;
+        const col_name = labeled_col_name();
+        var vendor_list = [];
+        var style_list = [];
+        console.log(par_var.full_data);
+        //const container = 
+        for(let x in par_var.full_data)
+        {
+            //date processing
+            var d = new Date(par_var.full_data[x][col_name['date']]);
+            if(d!="Invalid Date")
+            {   
+                if(start==null)
+                {
+                    start= d ;
+                    end = d;
+                }
+                if((start.getTime() - d.getTime())>0){start = d;}
+                if((end.getTime() - d.getTime())<0){end = d;}
+
+                //build list
+                vendor_list[par_var.full_data[x][col_name['vendor']]]={checked:true};
+                style_list[par_var.full_data[x][col_name['style']]]={checked:true};
+                
+                
+            }
+            //start and end also including ready date
+            var d = new Date(par_var.full_data[x][col_name['ready date']]);
+            if(d!="Invalid Date")
+            {
+                if((start.getTime() - d.getTime())>0){start = d;}
+                if((end.getTime() - d.getTime())<0){end = d;}
+            }
+            
+
+        }
+        //补齐start星期
+        start.setDate(start.getDate()-start.getDay());
+        end.setDate(end.getDate()+7-end.getDay());
+        
+        let datediff = end.getTime() - start.getTime();
+        let daydiff = Math.floor(datediff / (24 * 3600 * 1000))+1;//计算出相差天数
+        par_var.start_date=start;
+        par_var.end_date=end;
+        par_var.vendor_list=vendor_list;
+        par_var.style_list=style_list;
+        par_var.daydiff=daydiff;
+        fill_calender_menu();
+        function fill_calender_menu()
+        {
+            //
+            const cv = document.getElementById("calender_menu_vendor");
+            cv.innerHTML="";
+            for(let x in par_var.vendor_list)
+            {
+                var label = CE_UNIVERSAL("span","calender_menu_input_label",x,cv);
+                label.addEventListener("click",function(e){
+                    e.currentTarget.getElementsByTagName("input")[0].checked=!e.currentTarget.getElementsByTagName("input")[0].checked;
+                    var event = new Event('change');
+                    e.currentTarget.getElementsByTagName("input")[0].dispatchEvent(event);
+                })
+                var input = CE_UNIVERSAL("input","","",label);
+                input.addEventListener("click",function(e){
+                    
+                    e.stopPropagation();
+                });
+                input.setAttribute("id_",x);
+                input.addEventListener("change",function(e){
+                    par_var.vendor_list[e.currentTarget.getAttribute("id_")]=e.currentTarget.checked;
+                    fill_main_container()
+                    document.getElementById("detail_container").innerHTML="";
+                });
+                input.type="checkbox";
+                input.checked=true;
+            }
+
+            const cs = document.getElementById("calender_menu_style");
+            cs.innerHTML="";
+            for(let x in par_var.style_list)
+            {
+                var label = CE_UNIVERSAL("span","calender_menu_input_label",x,cs);
+                label.addEventListener("click",function(e){
+                    e.currentTarget.getElementsByTagName("input")[0].checked=!e.currentTarget.getElementsByTagName("input")[0].checked;
+                    var event = new Event('change');
+                    e.currentTarget.getElementsByTagName("input")[0].dispatchEvent(event);
+                })
+                var input = CE_UNIVERSAL("input","","",label);
+                input.addEventListener("click",function(e){e.stopPropagation();});
+                input.setAttribute("id_",x);
+                input.addEventListener("change",function(e){
+                    par_var.style_list[e.currentTarget.getAttribute("id_")]=e.currentTarget.checked;
+                    fill_main_container();
+                    document.getElementById("detail_container").innerHTML="";
+
+                });
+                input.type="checkbox";
+                input.checked=true;
+            }
+            
+        }
+    }
+    function fill_main_container()
+    {
+        //
+        //////////////////////////////////////
+        const col_name = labeled_col_name();
+        const cc = document.getElementById("calender_content");
+        cc.innerHTML="";
+        const invoice_order_by_date = [];
+        
+        //generate
+        for(var x in par_var.full_data)
+        {
+            if(par_var.vendor_list[par_var.full_data[x][col_name['vendor']]]==false)
+            {
+                continue;
+            }
+            
+            if(par_var.style_list[par_var.full_data[x][col_name['style']]]==false)
+            {
+                continue;
+            }
+            
+            var d = new Date(par_var.full_data[x][col_name['date']]);
+            if(d!="Invalid Date")
+            {
+                if(typeof(invoice_order_by_date[d])=="undefined")
+                {
+                    invoice_order_by_date[d]=[];
+                }
+                invoice_order_by_date[d].push(par_var.full_data[x]);
+            }
+            //ready date
+            var rd = new Date(par_var.full_data[x][col_name['ready date']]);
+            if(rd!="Invalid Date")
+            {
+                if(typeof(invoice_order_by_date[rd])=="undefined")
+                {
+                    invoice_order_by_date[rd]=[];
+                }
+                invoice_order_by_date[rd].push(par_var.full_data[x]);
+            }
+        }
+        
+        for (let i = 0; i < par_var.daydiff; i++)
+        {
+            var dd = new Date(par_var.start_date);
+            dd.setDate(par_var.start_date.getDate()+i);
+            var div = CE_UNIVERSAL("div","calender_item","",cc);
+            var date_display = CE_UNIVERSAL("span","",dd.yyyyMdd(),div);
+            if(invoice_order_by_date[dd]!=undefined)
+            {
+                var balance=0;
+                var in_total = 0;
+                var out_total = 0;
+                var ready_in =0;
+                for(let x in invoice_order_by_date[dd])
+                {
+                    var rd = new Date(invoice_order_by_date[dd][x][col_name['ready date']]);
+                    if(rd.yyyymmdd()==dd.yyyymmdd())
+                    {
+                        ready_in+=return_col_float(invoice_order_by_date[dd][x][col_name['in']]);
+                        
+                        balance+=return_col_float(invoice_order_by_date[dd][x][col_name['balance']]);
+                    }
+                    else
+                    {
+                        balance+=return_col_float(invoice_order_by_date[dd][x][col_name['balance']]);
+                        in_total+=return_col_float(invoice_order_by_date[dd][x][col_name['in']]);
+                        out_total+=return_col_float(invoice_order_by_date[dd][x][col_name['out']]);
+                    }
+                    
+                    
+                    /*
+                    
+                    in_total+=parseFloat(invoice_order_by_date[dd][x][col_name['in']]);
+                    out_total+=parseFloat(invoice_order_by_date[dd][x][col_name['out']]);
+                    */
+                }
+                var hr=CE_UNIVERSAL("hr","","",div);
+                var balance_div=CE_UNIVERSAL("div","","balance:"+ balance,div);
+                var in_div=CE_UNIVERSAL("div","","in:"+in_total,div);
+                var out_div=CE_UNIVERSAL("div","","out:"+out_total,div);
+                var ready_in_div=CE_UNIVERSAL("div","","ready_in:"+ready_in,div);
+                div.setAttribute("data",JSON.stringify(invoice_order_by_date[dd]));
+                div.addEventListener("click",function(e){
+                    fill_detail_panel(JSON.parse(e.currentTarget.getAttribute("data")));
+                });
+                div.classList.add("cursor_pointer");
+
+            }
+            
+        }
+
+        
+    }
+    function fill_detail_panel(obj)
+    {
+        //
+
+        const dc = document.getElementById("detail_container")
+        dc.style.display="";
+        const con_name = labeled_col_name();
+        dc.innerHTML="";
+        var close_button=CE_UNIVERSAL("button","","Close",dc);
+        close_button.addEventListener("click",function(e){
+            dc.style.display="none";
+        })
+        var hr = CE_UNIVERSAL("hr","","",dc)
+        var table = CE_UNIVERSAL("table","detail_table","",dc);
+        
+        var tr = CE_UNIVERSAL("tr","","",table);
+        for(let x in con_name)
+        {
+            //
+            var th = CE_UNIVERSAL("th","",x,tr);
+        }
+        for(let x in obj)
+        {
+            //
+            var tr = CE_UNIVERSAL("tr","","",table);
+            for(let y in con_name)
+            {
+                //
+                if(obj[x][con_name[y]]!=undefined)
+                {
+                    var td = CE_UNIVERSAL("td","",obj[x][con_name[y]],tr);
+                }
+                else
+                {
+                    var td = CE_UNIVERSAL("td","","",tr);
+                }
+                
+            }
+        }
+    }
+    function process_csv_to_array(str)
+    {  
+        const result = [];
+        const rows = str.split(String.fromCharCode(13));
+        
+        for(var x in rows)
+        {
+           
+            //44 9
+            var cols = rows[x].split(String.fromCharCode(9));  
+            
+            result.push(cols);
+        }
+        return result;
+    }
+    function labeled_col_name()
+    {
+        return {
+            "date" : 0 ,
+            "vendor" : 1 ,
+            "in" : 2 ,
+            "out" : 3 ,
+            "style" : 4 ,
+            "ready date" : 5 ,
+            "balance" : 6,
+        }
+    }
+    function return_col_float(str)
+    {
+        if(str==undefined)
+        {
+            return 0
+        }
+        if(parseFloat(str)!=NaN&&str.trim()!="")
+        {
+            return parseFloat(str);
+        }
+        return 0;
+    }
+    window.onload=function()
+    {
+        /**
+         * upload内容变化时载入内容
+         */
+        document.getElementById('upload').onchange = function () {
+            var content = document.getElementById('content');
+
+            getFileContent(this, function (str) {
+                content.value = str;
+                let pre_json = process_csv_to_array(str);
+                par_var.full_data=pre_json;
+                console.log(btoa(JSON.stringify(pre_json)));
+                
+                init_data();
+                fill_main_container(pre_json);
+            });
+        };
+        direct_get_hzhtml();
+        /////
+        const ht = new hzt("ha",document.getElementById("hzt"));
+    }
+    function direct_get_hzhtml(callback)
+    {
+        
+        let obj = JSON.parse(atob("W1siZGF0ZSIsInZlbmRvciIsImluIiwib3V0Iiwic3R5bGUiLCJyZWFkeSBkYXRlIiwiYmFsYW5jZSJdLFsiXG4xLzIxLzIwMjAiLCJBbmFudGEgQXBwYXJlbHMiLCIiLCIxMTA3IiwiUHJpbWVybyBQcmludDogV2hpdGUgZ3JvdW5kL0JsYWNrIGxvZ28iLCJmaW5pc2hlZCIsIjE1ODkzIl0sWyJcbjIvMTAvMjAyMCIsIktlbnBhcmsiLCIiLCI1MDAwIiwiUHJpbWVybyBQcmludDogV2hpdGUgZ3JvdW5kL0JsYWNrIGxvZ28iLCJmaW5pc2hlZCIsIjEwODkzIl0sWyJcbjIvMTQvMjAyMCIsIkd1b3RhaSBHdW9zaGVuZyIsIiIsIjcxMCIsIlByaW1lcm8gUHJpbnQ6IFdoaXRlIGdyb3VuZC9CbGFjayBsb2dvIiwiZmluaXNoZWQiLCIxMDE4MyJdLFsiXG4yLzI1LzIwMjAiLCJLZW5wYXJrIiwiIiwiODAwMCIsIlByaW1lcm8gUHJpbnQ6IFdoaXRlIGdyb3VuZC9CbGFjayBsb2dvIiwiZmluaXNoZWQiLCIyMTgzIl0sWyJcbjIvMTgvMjAyMCIsIkRlc2lnbmVyIEZhc2hpb24gTHRkLiIsIjE1MDAwIiwiNDc3OCIsIlByaW1lcm8gUHJpbnQ6IFdoaXRlIGdyb3VuZC9CbGFjayBsb2dvIiwiMTgvMy8yMDIwIiwiMTI0MDUiXSxbIlxuMy80LzIwMjAiLCIiLCIyMDAwMCIsIiIsIlByaW1lcm8gUHJpbnQ6IFdoaXRlIGdyb3VuZC9CbGFjayBsb2dvIiwiNC80LzIwMjAiLCIzMjQwNSJdLFsiXG4yLzE0LzIwMjAiLCJHdW90YWkgR3Vvc2hlbmciLCIiLCI0OTAiLCJQcmltZXJvIFByaW50OiBCbGFjayBncm91bmQvV2hpdGUgbG9nbyIsImZpbmlzaGVkIiwiMTQ5MTAiXSxbIlxuMi8xMC8yMDIwIiwiS2VucGFyayIsIiIsIjMwMDAiLCJQcmltZXJvIFByaW50OiBCbGFjayBncm91bmQvV2hpdGUgbG9nbyIsImZpbmlzaGVkIiwiMTE5MTAiXSxbIlxuMy80LzIwMjAiLCIiLCIxMDAwMCIsIiIsIlByaW1lcm8gUHJpbnQ6IEJsYWNrIGdyb3VuZC9XaGl0ZSBsb2dvIiwiNC80LzIwMjAiLCIyMTkxMCJdLFsiXG4zLzUvMjAyMFxcIiwiIiwiIiwiIiwiUHJpbWVybyBQcmludDogV2hpdGUgZ3JvdW5kLyBncmV5IExvZ28iLCJmaW5pc2hlZCIsIjExNzgwIl0sWyJcbjMvNS8yMDIwIiwiIiwiIiwiIiwiRnJpc2JlZSA1OCBQcmludDogV2hpdGUgZ3JvdW5kL0JsYWNrIGxvZ28iLCJmaW5pc2hlZCIsIjU5NjAiXSxbIlxuMy81LzIwMjAiLCIiLCIiLCIiLCJGcmlzYmVlIDU4IFByaW50OiBCbGFjayBncm91bmQvV2hpdGUgbG9nbyIsImZpbmlzaGVkIiwiNTAwMCJdLFsiXG4yLzI3LzIwMjAiLCJHdW90YWkgSHVhc2hlbmciLCIzMjAwIiwiMTU4NSIsIkNhcHJpIFByaW50OiBXaGl0ZSBncm91bmQvQmxhY2sgbG9nbyIsImZpbmlzaGVkIiwiMTYxNSJdLFsiXG4iXV0="));
+        par_var.full_data=obj;
+        init_data();
+        fill_main_container(obj);
+    }
+    var getFileContent = function (fileInput, callback) {
+        if (fileInput.files && fileInput.files.length > 0 && fileInput.files[0].size > 0) {
+            //下面这一句相当于JQuery的：var file =$("#upload").prop('files')[0];
+
+            var file = fileInput.files[0];
+            
+            if (window.FileReader) {
+                var reader = new FileReader();
+                reader.onloadend = function (evt) {
+                    if (evt.target.readyState == FileReader.DONE) {
+                        
+                        callback(evt.target.result);
+                    }
+                };
+                // 包含中文内容用utf8编码
+                reader.readAsText(file, 'utf8');
+            }
+        }
+    };
+    
+</script>
+
+
+<script>
+    //////////////////////////////////////
+    function CE_UNIVERSAL(tagname,classname,innerhtml,parent,pointer)
+    {
+        //
+        var obj=document.createElement(tagname);
+        obj.setAttribute("class",classname);
+        obj.innerHTML=innerhtml;
+        
+        if(pointer)
+        {
+            parent.insertBefore(obj,pointer);
+            //parent.appendChild(obj);
+        }
+        else
+        {
+            if(parent)
+            {
+                parent.appendChild(obj);
+            }
+            
+        }
+        
+        return obj;
+    }
+    
+
+    Date.prototype.yyyymmdd = function() {
+        var yyyy = this.getFullYear();
+        var mm = this.getMonth() < 9 ? "0" + (this.getMonth() + 1) : (this.getMonth() + 1); // getMonth() is zero-based
+        var dd = this.getDate() < 10 ? "0" + this.getDate() : this.getDate();
+        return "".concat(yyyy).concat(mm).concat(dd);
+    };
+    Date.prototype.yyyyMdd = function() {
+        var month = new Array();
+        month[0] = "Jan";
+        month[1] = "Feb";
+        month[2] = "Mar";
+        month[3] = "Apr";
+        month[4] = "May";
+        month[5] = "Jun";
+        month[6] = "Jul";
+        month[7] = "Aug";
+        month[8] = "Sep";
+        month[9] = "Oct";
+        month[10] = "Nov";
+        month[11] = "Dec"; 
+        var yyyy = this.getFullYear();
+        var mm = month[this.getMonth()];
+        var dd = this.getDate() < 10 ? "0" + this.getDate() : this.getDate();
+        return "".concat(" " +mm).concat(" " +dd).concat(" "+yyyy);
+    };
+    
+</script>
+<script>
+    //
+class hzt { 
+    constructor(name,parent,structure) {
+        this.name = name;
+        this.parent = parent;
+        this.style_sheet = {};
+
+        const style_content = this.style_structure();
+        for(let x in style_content)
+        {
+            this.style_sheet[x] = this.createClassName(style_content[x]);
+        }
+        this.html_instance=this.render_html(this.html_structure(),parent);
+    }
+    style_structure(){
+        var content = {
+            cursor_pointer :{
+                "cursor" : "pointer",
+                "background-color" : "aliceblue",
+            },
+        }
+        return content;
+    }
+    html_structure(){
+        const ele = {
+            "test1" :{
+                tagname : "div",
+                "id" : "dsd",
+                childnodes : {
+                    "test1child" :{
+                        tagname : "div",
+                        innerhtml : "dasdasd",
+                        childnodes : {
+                            "subele":{
+                                tagname : "span",
+                                innerhtml : "test",
+                                class : "cursor_pointer",
+                            },
+                            "subele1":{
+                                tagname : "span",
+                                innerhtml : "2test2",
+                                class : "cursor_pointer",
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return ele;
+    }
+    render_html(structure,parent){
+        //
+        var obj ={};
+        for(let x in structure)
+        {
+            obj[x]=this.CE_WCSS(structure[x],parent);
+            
+            this.render_html(structure[x].childnodes,obj[x]);
+        }
+        return obj;
+    }
+    CE_WCSS(parameter,parent)
+    {
+        //
+        var tagname="div";
+        if(parameter["tagname"]!=undefined)
+        {
+            var tagname=parameter["tagname"];
+        }
+        var obj=document.createElement(tagname);
+        for(let x in parameter)
+        {
+            switch(x)
+            {
+                case "onchange":case "onclick":
+                    
+                break;
+                case "innerhtml":
+                    obj.innerHTML = parameter[x];
+                break;
+                case "childnodes":case "tagname":
+
+                break;
+                case "class":
+                    obj.setAttribute(x,this.style_sheet[parameter[x]]);
+                    
+                break;
+                default :
+                    obj.setAttribute(x,parameter[x]);
+                break;
+                
+            }
+        }
+        parent.appendChild(obj);
+        return obj;
+    }
+
+    createClassName(style) {
+        const className = createRandomName();
+        let styleSheet;
+        for (let i = 0; i < document.styleSheets.length; i++) {
+            if (document.styleSheets[i].CSSInJS) {
+                styleSheet = document.styleSheets[i];
+                break;
+            }
+        }
+        if (!styleSheet) {
+            const style = document.createElement("style");
+            document.head.appendChild(style);
+            styleSheet = style.sheet;
+            styleSheet.CSSInJS = true;
+        }
+        styleSheet.insertRule(`.${className}${phraseStyle(style)}`);
+        
+        return className;
+        ///////////////////////////////////////////
+        function createRandomName() {
+            const code = Math.random().toString(36).substring(7);
+            return `css-${code}`;
+        }
+        function phraseStyle(style) {
+            const keys = Object.keys(style);
+            const keyValue = keys.map(key => {
+                const kebabCaseKey = key.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+                
+                const value = `${style[key]}${typeof style[key] === "number" ? "px" : ""}`;
+                
+                return `${kebabCaseKey}:${value};`;
+            });
+            return `{${keyValue.join("")}}`;
+        }
+    }
+}
+
+
+</script>
+<style>
+    .calender_item{
+        justify-content: center;
+        background-color: #fff;
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        flex: 0 14.28%;
+        box-shadow: 0 0 0 0.5px lightgray ;
+    }
+    .calender_item_title{
+        justify-content: center;
+        align-items: center;
+        display: flex;
+        flex: 0 14.28%;
+        box-shadow: 0 0 0 0.5px lightgray ;
+    }
+    .calender_item:hover{
+        background-color: rgb(245, 245, 245);
+    }
+    .calender_menu{
+
+    }
+    .container{
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        flex-flow: row wrap;
+    }
+    .calender_menu_input_label{
+        font-size: 1em;
+        padding: 0.5em;
+        height: 26px;
+        margin: 10px;
+        -webkit-box-shadow: 2px 5px 16px 0px rgb(90, 90, 90), 1px 4px 7px -2px rgba(0,0,0,0); 
+        box-shadow: 2px 5px 16px 0px rgb(90, 90, 90), 1px 4px 7px -2px rgba(0,0,0,0);
+        cursor: pointer;
+        border-radius: 30px 0px 30px 0px;
+    }
+    .detail_table{
+        width: 100%;
+        -webkit-box-shadow: 2px 5px 16px 0px rgb(90, 90, 90), 1px 4px 7px -2px rgba(0,0,0,0); 
+        box-shadow: 2px 5px 16px 0px rgb(90, 90, 90), 1px 4px 7px -2px rgba(0,0,0,0);
+        
+    }
+    .detail_table tr:nth-child(even){
+        
+        background-color: #555;
+    }
+    .detail_table tr td{
+        border-right: solid 1px grey;
+        padding: 5px;
+    }
+    .cursor_pointer{
+        cursor: pointer;
+        background-color: aliceblue;
+    }
+    #detail_container{
+        position: fixed;
+        display: flex;
+        justify-content: space-around;
+        padding: 20px;
+        background-color: gray;
+        color: white;
+        -webkit-box-shadow: 2px 5px 16px 0px rgb(90, 90, 90), 1px 4px 7px -2px rgba(0,0,0,0); 
+        box-shadow: 2px 5px 16px 0px rgb(90, 90, 90), 1px 4px 7px -2px rgba(0,0,0,0);
+        flex-direction: column;
+        
+    }
+</style>
+</head>
+<body>
+
+    <div>
+        <button onclick="direct_get_hzhtml()">click</button>
+        <input type="file" name="upload" id="upload" accept="text/plain"/>
+        <textarea name="content" id="content"></textarea>
+    </div>
+    <div id="main_container" style="display: flex;">
+        
+        <div 
+            id="calender_container"
+            
+        >
+            <div
+                id="calender_top"
+                class="container"
+
+            >
+                <div id="calender_menu" class="container">
+                    <div 
+                        id="calender_menu_vendor" 
+                        class="container" 
+                        style="flex:50%">
+                    
+                    </div>
+                    
+                    <div 
+                        id="calender_menu_style" 
+                        class="container"
+                        style="flex:50%">
+                    </div>
+                    
+                    
+                </div>
+            </div>
+            <div style="display: flex;margin-top: 20px;">
+                <div style="">
+                    <div 
+                        class="container" 
+                        style="background-color: silver;">
+                        <div class="calender_item_title">
+                            Monday
+                        </div>
+                        <div class="calender_item_title">
+                            Tuesday
+                        </div>
+                        <div class="calender_item_title">
+                            Wednesday
+                        </div>
+                        <div class="calender_item_title">
+                            Thursday
+                        </div>
+                        <div class="calender_item_title">
+                            Friday
+                        </div>
+                        <div class="calender_item_title">
+                            Saturday
+                        </div>
+                        <div class="calender_item_title">
+                            Sunday
+                        </div>
+                    </div>
+                    <div
+                        id="calender_content"
+                        class="container"
+                        
+                    >
+    
+                    </div>
+                </div>
+                <div 
+                    id="detail_container" 
+                    style="display: none;"
+                >
+                    
+                </div>
+            </div>
+            
+            
+        </div>
+        
+    </div>
+    <div id="hzt"></div>
+</body>
+</html>

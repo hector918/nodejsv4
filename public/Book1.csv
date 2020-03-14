@@ -1,0 +1,13 @@
+date,vendor,in,out,style,ready date,balance
+3/1/2020,b,,45,style1,finished,7978
+2/27/2020,c,23,,style2,3/5/2020,
+3/1/2020,z,,231,style3,finished,
+3/3/2020,b,,12,style4,finished,
+3/3/2020,c,1213,,style5,3/9/2020,
+3/1/2020,z,,89,style2,finished,
+3/1/2020,b,,468,style3,finished,
+3/1/2020,c,234,,style8,3/2/2020,
+3/2/2020,z,,54,style9,finished,
+3/2/2020,b,,324,style1,finished,
+3/3/2020,c,4,,style3,3/2/2020,
+3/3/2020,z,,67,style8,finished,

@@ -12,7 +12,8 @@ function process_without_session(par)
 	var par_=general_function.DebugStep(par,"process_without_session");
 
 	//没有登陆标记
-	par_.ResContent.content.session['islogin']=false;
+	
+	par_.ResContent.content.session={'islogin':false};
 
 	var url_parts = url.parse(par.Request.url);
  	url_parts.pathname = url_parts.pathname.replace("..","");
@@ -160,6 +161,24 @@ function handle_GET_with_sessionID( par)
 				break;
 			}
 		break;
+		case (url_parts.pathname.match(/^\/api\/form/) || {}).input:
+			let unfinished_form = require('./dbmodel/unfinished_form');
+			switch(url_parts.pathname)
+			{
+				case  "/api/form/upload_unfinished_form":
+					par_.callback = general_function.ResWrite;
+					unfinished_form.SaveUnfinishedForm(par_);
+				break;
+				case  "/api/form/get_unfinished_form":
+					par_.callback = general_function.ResWrite;
+					unfinished_form.ReadUnfinishedForm(par_);
+				break;
+				default:
+					//此处如不返回，将会返回到http response输出
+					default_action_w();
+				break;
+			}
+		break;
 		case "/api/session/get_session":
 			//回复session user station
 
@@ -170,6 +189,7 @@ function handle_GET_with_sessionID( par)
 			
 			general_function.ResWrite(par_);
 		break;
+		
 		default : 
 			default_action_w();
 		break;

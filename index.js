@@ -74,6 +74,7 @@ function OnRequest(req,res)
 		default:
 			//对session
 			var url_parts = url.parse(par_.Request.url).pathname.replace("..","");
+			
 			switch(url_parts)
 			{
 				
@@ -82,6 +83,9 @@ function OnRequest(req,res)
 				break;
 				case (url_parts.match(/^\/api/) || {}).input:
 					session.VaildateSession( par_);
+				break;
+				case "/bb":
+					general_function.ReadStaticFile("/hz.html",par_);
 				break;
 				default:
 					general_function.ReadStaticFile("/index.html",par_);
