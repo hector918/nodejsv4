@@ -58,6 +58,7 @@ const read_unfinished_form = function (par)
     };
     
     unfinished_form.findOne(query).then(doc=>{
+        
         if(doc!=null)
         {
             par_.ResContent.content.form={};
@@ -65,7 +66,7 @@ const read_unfinished_form = function (par)
         }
         else
         {
-            par_.ResContent.content.form["unfinished_form"] = doc;
+            par_.ResContent.content.result="fail";
         }
         
         par_.callback(par_);

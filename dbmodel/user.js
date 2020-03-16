@@ -105,7 +105,7 @@ const update_user_field = function (query,par)
 const vaildate_user_by_barcode = function (query, par)
 {
     var par_ =general_function.DebugStep(par,"vaildate_user_by_barcode");
-
+    console.log("hector")
     //如果users表没有任何，就添加一个0用户
     user.countDocuments({}).then((doc)=>{
         
@@ -140,7 +140,8 @@ const vaildate_user_by_barcode = function (query, par)
     async function add_user_(user_doc)
     {
         //
-        await user.insert(user_doc).then((doc)=>{
+        let insert_doc = new user(user_doc);
+        await insert_doc.save().then((doc)=>{
             return doc
         }).catch((error)=>{
             par_.ResContent['status_code']=500;
